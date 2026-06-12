@@ -1,0 +1,148 @@
+# SHIAB Configuration
+# Copy this file to config.yaml and edit to your needs.
+
+app:
+  name: "SHIAB"
+  host: "0.0.0.0"
+  port: 8000
+
+database:
+  path: "data/shiab.db"
+
+theme:
+  active: "default"  # Options: "default", "dark", "solarized", "forest", "oled"
+
+# Optional authentication (off by default).
+# When enabled, all pages and APIs require signing in with this password.
+# Env overrides: SHIAB_AUTH_ENABLED=true, SHIAB_AUTH_PASSWORD=...
+# Set a stable SHIAB_SECRET_KEY env var to keep sessions valid across restarts.
+auth:
+  enabled: false
+  password: ""
+
+modules:
+  # System stats - no configuration needed, works out of the box
+  system_stats:
+    enabled: true
+
+  weather:
+    enabled: true
+    settings:
+      api_key: ""  # Get your key at https://openweathermap.org/api
+      city: "London"
+      units: "metric"
+      refresh_minutes: 15
+
+  timedate:
+    enabled: true
+    settings:
+      timezone: "UTC"
+      format_24h: true
+
+  calendar:
+    enabled: true
+    settings:
+      default_view: "upcoming"
+      max_upcoming: 5
+
+  bluetooth:
+    enabled: false  # Disabled by default - requires Bluetooth hardware
+    settings:
+      scan_duration: 10  # Duration of each BLE scan in seconds
+      auto_scan: false   # Automatically scan on each refresh
+
+  wifi:
+    enabled: true
+    settings:
+      devices: [{name: "SHIAB Backend", ip: "127.0.0.1", port: 8000}]  # Add devices as {name: "...", ip: "...", port: 80}
+      check_interval: 60
+
+  # ============================================================================
+  # Bluetooth Low Energy Module
+  # ============================================================================
+  # Discovers and monitors nearby Bluetooth (BLE) devices
+  # Requirements:
+  #   - bleak library (pip install bleak)
+  #   - Bluetooth hardware support on device
+  #
+  # Example configuration (Linux/Mac):
+  # bluetooth:
+  #   enabled: true
+  #   settings:
+  #     scan_duration: 15
+  #     auto_scan: true
+  # ============================================================================
+
+  # ============================================================================
+  # TP-Link Tapo Smart Home Module
+  # ============================================================================
+  # Monitor and control TP-Link Tapo smart devices (plugs, bulbs, cameras)
+  # Requirements:
+  #   - PyP100 library (pip install PyP100)
+  #   - Valid TP-Link account credentials
+  #   - Tapo devices configured in your TP-Link account
+  #
+  # Device types supported: plug, bulb, camera, hub
+  #
+  # Example configuration:
+  # tapo:
+  #   enabled: true
+  #   settings:
+  #     email: "your-email@example.com"
+  #     password: "your-tp-link-password"
+  #     devices:
+  #       - name: "Living Room Plug"
+  #         ip: "192.168.1.50"
+  #         type: "plug"
+  #       - name: "Desk Lamp"
+  #         ip: "192.168.1.51"
+  #         type: "bulb"
+  # ============================================================================
+  tapo:
+    enabled: false
+    settings:
+      email: ""  # TP-Link account email
+      password: ""  # TP-Link account password
+      devices: []  # Add devices as {name: "...", ip: "...", type: "plug|bulb|camera|hub"}
+
+  # ============================================================================
+  # Zigbee Smart Home Module
+  # ============================================================================
+  # Discover and control Zigbee smart home devices (lights, switches, sensors)
+  #
+  # Requirements:
+  #   - zigpy library and appropriate coordinator driver
+  #   - Zigbee coordinator (CC2531, ConBee II, XBee, SONOFF ZBDongle)
+  #   - Serial port connection to coordinator
+  #
+  # Supported coordinators:
+  #   - cc2531: TI CC2531 USB Stick (pip install zigpy-cc)
+  #   - conbee: ConBee II (pip install zigpy-deconz)
+  #   - xbee: Digi XBee (pip install zigpy-xbee)
+  #   - sonoff: SONOFF ZBDongle (pip install zigpy-zigate)
+  #
+  # Example configuration (Linux):
+  # zigbee:
+  #   enabled: true
+  #   settings:
+  #     coordinator_port: "/dev/ttyUSB0"  # Find with: ls /dev/ttyUSB*
+  #     coordinator_type: "cc2531"
+  #     channel: 15  # Zigbee channel (11-26, 15-20 recommended)
+  #     permit_join: false  # Set to true temporarily to pair new devices
+  #
+  # Example configuration (Windows):
+  # zigbee:
+  #   enabled: true
+  #   settings:
+  #     coordinator_port: "COM3"  # Find in Device Manager
+  #     coordinator_type: "conbee"
+  #     channel: 20
+  #     permit_join: false
+  # ============================================================================
+  zigbee:
+    enabled: false  # Requires a Zigbee coordinator
+    settings:
+      coordinator_port: ""  # e.g. /dev/ttyUSB0 (Linux), COM3 (Windows)
+      coordinator_type: "cc2531"  # cc2531, conbee, xbee, sonoff
+      channel: 15  # Zigbee channel (11-26)
+      permit_join: false  # Allow new devices to join (temporary)
