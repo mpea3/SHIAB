@@ -1,0 +1,14 @@
+services:
+  shiab:
+    build: .
+    container_name: shiab
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - ./modules_external:/app/modules_external
+      - ./app/static/css/themes:/app/app/static/css/themes
+    environment:
+      - TZ=Europe/Amsterdam
+    restart: unless-stopped
