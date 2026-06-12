@@ -1,0 +1,47 @@
+<div class="tapo-widget">
+    {% if data.message %}
+    <div style="font-size: var(--font-size-xs); color: var(--color-warning); margin-bottom: var(--spacing-sm);">
+        {{ data.message }}
+    </div>
+    {% endif %}
+
+    <ul class="widget-list tapo-list">
+        {% for device in data.devices %}
+        <li class="widget-list-item">
+            <div>
+                <span class="status-dot {{ 'status-online' if device.reachable else 'status-offline' }}"></span>
+                <span class="widget-list-item-name">{{ device.name }}</span>
+            </div>
+            <span class="widget-list-item-meta">
+                {% if device.on is not none %}
+                    {{ "On" if device.on else "Off" }}
+                {% elif device.reachable %}
+                    Reachable
+                {% else %}
+                    Offline
+                {% endif %}
+                &middot; {{ device.type }}
+            </span>
+        </li>
+        {% endfor %}
+        {% if not data.devices %}
+        <li class="widget-list-item">
+            <span class="widget-list-item-name" style="color: var(--color-text-muted);">
+                No devices configured
+            </span>
+        </li>
+        {% endif %}
+    </ul>
+
+    {% if data.authenticated is not none %}
+    <div class="widget-details">
+        <div class="widget-detail">
+            <span class="widget-detail-label">Auth Status</span>
+            <span class="widget-detail-value">
+                <span class="status-dot {{ 'status-online' if data.authenticated else 'status-offline' }}"></span>
+                {{ "Authenticated" if data.authenticated else "Not configured" }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+</div>

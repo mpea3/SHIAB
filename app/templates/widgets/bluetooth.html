@@ -1,0 +1,23 @@
+<div class="bluetooth-widget">
+    {% if data.message %}
+    <div style="font-size: var(--font-size-xs); color: var(--color-warning); margin-bottom: var(--spacing-sm);">
+        {{ data.message }}
+    </div>
+    {% endif %}
+
+    <ul class="widget-list bluetooth-list">
+        {% for device in data.devices %}
+        <li class="widget-list-item">
+            <span class="widget-list-item-name">{{ device.name or "Unknown Device" }}</span>
+            <span class="widget-list-item-meta">{{ device.rssi }} dBm</span>
+        </li>
+        {% endfor %}
+        {% if not data.devices %}
+        <li class="widget-list-item">
+            <span class="widget-list-item-name" style="color: var(--color-text-muted);">
+                No devices found
+            </span>
+        </li>
+        {% endif %}
+    </ul>
+</div>

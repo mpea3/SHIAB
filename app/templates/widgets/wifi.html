@@ -1,0 +1,41 @@
+<div class="wifi-widget">
+    {% if data.message %}
+    <div style="font-size: var(--font-size-xs); color: var(--color-warning); margin-bottom: var(--spacing-sm);">
+        {{ data.message }}
+    </div>
+    {% endif %}
+
+    <ul class="widget-list wifi-list">
+        {% for device in data.devices %}
+        <li class="widget-list-item">
+            <div>
+                <span class="status-dot {{ 'status-online' if device.online else 'status-offline' }}"></span>
+                <span class="widget-list-item-name">{{ device.name }}</span>
+            </div>
+            <span class="widget-list-item-meta">
+                {{ device.ip }}{% if device.online and device.latency_ms %} - {{ device.latency_ms }}ms{% elif not device.online %} - Offline{% endif %}
+            </span>
+        </li>
+        {% endfor %}
+        {% if not data.devices %}
+        <li class="widget-list-item">
+            <span class="widget-list-item-name" style="color: var(--color-text-muted);">
+                No devices configured
+            </span>
+        </li>
+        {% endif %}
+    </ul>
+
+    {% if data.network_info %}
+    <div class="widget-details">
+        <div class="widget-detail">
+            <span class="widget-detail-label">Hostname</span>
+            <span class="widget-detail-value">{{ data.network_info.hostname }}</span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label">Local IP</span>
+            <span class="widget-detail-value">{{ data.network_info.local_ip }}</span>
+        </div>
+    </div>
+    {% endif %}
+</div>

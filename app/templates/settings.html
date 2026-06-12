@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Settings</h1>
+    <p>Configure your {{ app_name }} instance</p>
+</div>
+
+<form method="post" action="/settings" class="settings-form">
+    <!-- Theme Selection -->
+    <section class="settings-section">
+        <h2 class="settings-section-title">Appearance</h2>
+        <div class="settings-field">
+            <label for="theme">Theme</label>
+            <select name="theme" id="theme">
+                {% for t in available_themes %}
+                <option value="{{ t }}" {% if t == theme %}selected{% endif %}>
+                    {{ t | capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </section>
+
+    <!-- Module Management -->
+    <section class="settings-section">
+        <h2 class="settings-section-title">Modules</h2>
+        {% for module in modules %}
+        <div class="settings-module">
+            <div class="settings-module-header">
+                <div class="settings-module-info">
+                    <h3>{{ module.display_name }}</h3>
+                    <p>{{ module.description }}</p>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox"
+                           name="module_{{ module.name }}_enabled"
+                           {% if module.enabled %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            {% if module.config_schema %}
+            <div class="settings-module-config">
+                {% for field_name, field_info in module.config_schema.items() %}
+                <div class="settings-field">
+                    <label for="{{ module.name }}_{{ field_name }}">
+                        {{ field_info.get("label", field_name) }}
+                    </label>
+                    {% if field_info.get("type") == "select" %}
+                    <select name="{{ module.name }}_{{ field_name }}"
+                            id="{{ module.name }}_{{ field_name }}">
+                        {% for opt in field_info.get("options", []) %}
+                        <option value="{{ opt }}"
+                                {% if module.config.get(field_name) == opt %}selected{% endif %}>
+                            {{ opt }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% elif field_info.get("type") == "boolean" %}
+                    <label class="toggle">
+                        <input type="checkbox"
+                               name="{{ module.name }}_{{ field_name }}"
+                               {% if module.config.get(field_name) %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    {% elif field_info.get("type") == "password" %}
+                    <div class="password-field">
+                        <input type="password"
+                               name="{{ module.name }}_{{ field_name }}"
+                               id="{{ module.name }}_{{ field_name }}"
+                               placeholder="{% if module.config.get(field_name) %}••••••••{% else %}Enter {{ field_info.get('label', field_name) | lower }}{% endif %}"
+                               {% if field_info.get("required") %}required{% endif %}>
+                        {% if module.config.get(field_name) %}
+                        <small class="text-muted">• Current value saved (leave empty to keep)</small>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <input type="{{ field_info.get('type', 'text') }}"
+                           name="{{ module.name }}_{{ field_name }}"
+                           id="{{ module.name }}_{{ field_name }}"
+                           value="{{ module.config.get(field_name, '') }}"
+                           {% if field_info.get("required") %}required{% endif %}
+                           {% if field_info.get("placeholder") %}placeholder="{{ field_info.placeholder }}"{% endif %}>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </section>
+
+    <div class="settings-actions">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+</form>
+
+<!-- Quick links -->
+<section class="settings-section" style="margin-top:var(--spacing-lg);max-width:800px">
+    <h2 class="settings-section-title">Tools & Data</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--spacing-md)">
+        <a href="/automations" class="btn btn-secondary">⚡ Manage Automations</a>
+        <a href="/notifications" class="btn btn-secondary">🔔 View Notifications</a>
+        <button class="btn btn-secondary" onclick="purgeHistory(30)" id="purge-btn">
+            🗑 Purge history &gt;30 days
+        </button>
+    </div>
+</section>
+
+<script>
+async function purgeHistory(days) {
+    var btn = document.getElementById('purge-btn');
+    btn.disabled = true;
+    btn.textContent = 'Purging…';
+    try {
+        var resp = await fetch('/api/history/purge?days=' + days, { method: 'DELETE' });
+        var data = await resp.json();
+        btn.textContent = '✓ Deleted ' + data.deleted + ' readings';
+    } catch(e) {
+        btn.textContent = 'Error';
+    }
+    setTimeout(function() {
+        btn.disabled = false;
+        btn.textContent = '🗑 Purge history >30 days';
+    }, 3000);
+}
+</script>
+
+<style>
+    .settings-form {
+        max-width: 800px;
+    }
+
+    .settings-section {
+        background-color: var(--color-surface);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-lg);
+        box-shadow: var(--shadow);
+    }
+
+    .settings-section-title {
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semibold);
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .settings-field {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .settings-field select,
+    .settings-field input[type="text"],
+    .settings-field input[type="number"],
+    .settings-field input[type="password"] {
+        max-width: 300px;
+    }
+
+    .password-field small {
+        display: block;
+        margin-top: var(--spacing-xs);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+    }
+
+    .settings-module {
+        padding: var(--spacing-lg) 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .settings-module:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .settings-module-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .settings-module-info h3 {
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .settings-module-info p {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        margin-top: var(--spacing-xs);
+    }
+
+    .settings-module-config {
+        margin-top: var(--spacing-md);
+        padding-left: var(--spacing-lg);
+    }
+
+    .settings-actions {
+        margin-top: var(--spacing-lg);
+    }
+</style>
+{% endblock %}

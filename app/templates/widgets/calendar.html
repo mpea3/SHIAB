@@ -1,0 +1,35 @@
+<div class="calendar-widget">
+    {% if data.upcoming_events %}
+    <ul class="widget-list calendar-list">
+        {% for event in data.upcoming_events %}
+        <li class="widget-list-item calendar-event-item" data-event-id="{{ event.id }}">
+            <div style="flex:1;min-width:0">
+                <span class="widget-list-item-name">{{ event.title }}</span>
+                <div class="widget-list-item-meta">
+                    {% if event.all_day %}
+                        All day &bull; {{ event.start_time[:10] }}
+                    {% else %}
+                        {{ event.start_time[:16] | replace("T", " ") }}
+                    {% endif %}
+                </div>
+            </div>
+            <button class="btn-icon btn-icon-danger calendar-delete-btn"
+                    title="Delete event"
+                    onclick="deleteCalendarEvent({{ event.id }}, this)">×</button>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <ul class="widget-list calendar-list">
+        <li class="widget-list-item">
+            <span class="widget-list-item-name" style="color: var(--color-text-muted);">
+                No upcoming events
+            </span>
+        </li>
+    </ul>
+    {% endif %}
+
+    <div class="calendar-add-row">
+        <button class="btn-add-event" onclick="openCalendarModal()">+ Add Event</button>
+    </div>
+</div>

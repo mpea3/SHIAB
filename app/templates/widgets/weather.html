@@ -1,0 +1,34 @@
+<div class="weather-widget">
+    {% if data.demo %}
+    <div style="font-size: var(--font-size-xs); color: var(--color-warning); margin-bottom: var(--spacing-sm);">
+        Demo data - {{ data.message }}
+    </div>
+    {% endif %}
+
+    <div style="display: flex; align-items: baseline; gap: var(--spacing-sm);">
+        <span class="widget-value weather-temp">{{ data.temperature | round | int }}</span>
+        <span class="widget-value-unit">&deg;{{ "C" if data.units == "metric" else "F" }}</span>
+    </div>
+    <div class="widget-label weather-desc">{{ data.description }}</div>
+
+    <div class="widget-details">
+        <div class="widget-detail">
+            <span class="widget-detail-label">Feels Like</span>
+            <span class="widget-detail-value">{{ data.feels_like | round | int }}&deg;</span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label weather-humidity-label">Humidity</span>
+            <span class="widget-detail-value weather-humidity">{{ data.humidity }}%</span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label">Wind</span>
+            <span class="widget-detail-value weather-wind">{{ data.wind_speed }} {{ "m/s" if data.units == "metric" else "mph" }}</span>
+        </div>
+    </div>
+
+    <div class="stat-chart-trigger">
+        <button class="btn-chart-link" onclick="openHistoryChart('weather', 'temperature', 'Temperature')">
+            📈 View History
+        </button>
+    </div>
+</div>

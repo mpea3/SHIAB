@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - {{ app_name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/dashboard.css">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h1>Notifications</h1>
+        <p style="color:var(--color-text-muted);font-size:var(--font-size-sm);margin-top:var(--spacing-xs)">
+            Alerts and messages from your smart home automations
+        </p>
+    </div>
+    <div style="display:flex;gap:var(--spacing-sm)">
+        <button class="btn btn-secondary" onclick="markAllRead()">Mark all read</button>
+        <a href="/automations" class="btn btn-secondary">⚡ Automations</a>
+    </div>
+</div>
+
+{% if notifications %}
+<div class="notification-list" id="notification-list">
+    {% for n in notifications %}
+    <div class="notification-item level-{{ n.level }}{% if not n.read %} unread{% endif %}" data-id="{{ n.id }}">
+        <div class="notif-level-bar"></div>
+        <div class="notification-content">
+            <div class="notification-title">{{ n.title }}</div>
+            {% if n.message %}
+            <div class="notification-message">{{ n.message }}</div>
+            {% endif %}
+            <div class="notification-meta">
+                {{ n.created_at.strftime('%b %d, %Y at %H:%M') }}
+                {% if n.module_name %}
+                &bull; <code>{{ n.module_name }}</code>
+                {% endif %}
+                {% if not n.read %}<span class="notif-unread-badge">New</span>{% endif %}
+            </div>
+        </div>
+        <div class="notification-item-actions">
+            {% if not n.read %}
+            <button class="btn-icon" title="Mark as read" onclick="markRead({{ n.id }}, this)">✓</button>
+            {% endif %}
+            <button class="btn-icon btn-icon-danger" title="Delete" onclick="deleteNotif({{ n.id }}, this)">×</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="dashboard-empty">
+    <h2>No notifications yet</h2>
+    <p>Notifications from <a href="/automations">automations</a> and system alerts will appear here.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+async function markRead(id, btn) {
+    await fetch("/api/notifications/" + id + "/read", { method: "POST" });
+    var item = btn.closest(".notification-item");
+    item.classList.remove("unread");
+    var badge = item.querySelector(".notif-unread-badge");
+    if (badge) badge.remove();
+    btn.remove();
+    updateNotifBadge(-1);
+}
+
+async function markAllRead() {
+    await fetch("/api/notifications/read-all", { method: "POST" });
+    document.querySelectorAll(".notification-item").forEach(function (item) {
+        item.classList.remove("unread");
+        var badge = item.querySelector(".notif-unread-badge");
+        if (badge) badge.remove();
+        var readBtn = item.querySelector(".btn-icon:not(.btn-icon-danger)");
+        if (readBtn) readBtn.remove();
+    });
+    updateNotifBadge(0, true);
+}
+
+async function deleteNotif(id, btn) {
+    var item = btn.closest(".notification-item");
+    var wasUnread = item.classList.contains("unread");
+    await fetch("/api/notifications/" + id, { method: "DELETE" });
+    item.style.opacity = "0";
+    item.style.transition = "opacity 0.3s";
+    setTimeout(function () { item.remove(); }, 300);
+    if (wasUnread) updateNotifBadge(-1);
+}
+
+function updateNotifBadge(delta, reset) {
+    var badge = document.getElementById("notif-count");
+    if (!badge) return;
+    if (reset) {
+        badge.style.display = "none";
+        badge.textContent = "0";
+        return;
+    }
+    var current = parseInt(badge.textContent, 10) || 0;
+    var next = Math.max(0, current + delta);
+    badge.textContent = next > 99 ? "99+" : next;
+    badge.style.display = next > 0 ? "" : "none";
+}
+</script>
+{% endblock %}

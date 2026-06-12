@@ -1,0 +1,52 @@
+/* SHIAB Solarized Dark Theme */
+:root {
+    /* Solarized color palette */
+    --color-bg: #002b36;
+    --color-surface: #073642;
+    --color-primary: #2aa198;
+    --color-primary-hover: #39c5b8;
+    --color-primary-light: #073642;
+    --color-text: #839496;
+    --color-text-muted: #586e75;
+    --color-text-inverse: #002b36;
+    --color-border: #073642;
+    --color-error: #dc322f;
+    --color-error-light: #1a0a0a;
+    --color-success: #859900;
+    --color-success-light: #0d1a00;
+    --color-warning: #b58900;
+    --color-warning-light: #1a1200;
+
+    /* Typography */
+    --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 2rem;
+    --font-size-3xl: 3rem;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Layout */
+    --border-radius: 0.75rem;
+    --border-radius-sm: 0.375rem;
+    --header-height: 60px;
+    --transition: 0.2s ease;
+
+    /* Shadows */
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
+}

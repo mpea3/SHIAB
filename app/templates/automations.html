@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Automations - {{ app_name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/dashboard.css">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h1>Automations</h1>
+        <p style="color:var(--color-text-muted);font-size:var(--font-size-sm);margin-top:var(--spacing-xs)">
+            Create rules that automatically respond to changes in your smart home
+        </p>
+    </div>
+    <button class="btn btn-primary" id="add-automation-btn">+ New Rule</button>
+</div>
+
+{% if automations %}
+<div class="automation-list">
+    {% for auto in automations %}
+    <div class="automation-card{% if not auto.enabled %} automation-disabled{% endif %}" data-id="{{ auto.id }}">
+        <div class="automation-header">
+            <div class="automation-info">
+                <span class="automation-name">{{ auto.name }}</span>
+                {% if auto.description %}
+                <span class="automation-description">{{ auto.description }}</span>
+                {% endif %}
+            </div>
+            <div class="automation-actions">
+                <label class="toggle" title="{{ 'Disable' if auto.enabled else 'Enable' }}">
+                    <input type="checkbox" {% if auto.enabled %}checked{% endif %}
+                           onchange="toggleAutomation({{ auto.id }}, this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <button class="btn-icon" title="Edit" onclick="editAutomation({{ auto.id }})">✎</button>
+                <button class="btn-icon btn-icon-danger" title="Delete" onclick="deleteAutomation({{ auto.id }})">🗑</button>
+            </div>
+        </div>
+
+        <div class="automation-body">
+            <div class="automation-rule">
+                <span class="automation-badge badge-if">IF</span>
+                <code class="automation-code">{{ auto.trigger_module }}.{{ auto.trigger_key }}</code>
+                <span class="automation-op">
+                    {% if auto.trigger_operator == 'gt' %}&gt;
+                    {% elif auto.trigger_operator == 'gte' %}&ge;
+                    {% elif auto.trigger_operator == 'lt' %}&lt;
+                    {% elif auto.trigger_operator == 'lte' %}&le;
+                    {% elif auto.trigger_operator == 'eq' %}=
+                    {% elif auto.trigger_operator == 'ne' %}&ne;
+                    {% elif auto.trigger_operator == 'contains' %}contains
+                    {% else %}{{ auto.trigger_operator }}{% endif %}
+                </span>
+                <code class="automation-code">{{ auto.trigger_value }}</code>
+            </div>
+            <div class="automation-rule">
+                <span class="automation-badge badge-then">THEN</span>
+                {% if auto.action_type == 'notify' %}
+                <span>Send notification</span>
+                {% elif auto.action_type == 'webhook' %}
+                <span>Call webhook</span>
+                {% else %}
+                <span>{{ auto.action_type }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="automation-footer">
+            <span class="automation-meta">
+                Cooldown: {{ auto.cooldown_seconds }}s
+                &bull;
+                {% if auto.last_triggered %}
+                Last triggered: {{ auto.last_triggered.strftime('%b %d %H:%M') }}
+                {% else %}
+                Never triggered
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="dashboard-empty">
+    <h2>No automation rules yet</h2>
+    <p>Automations watch your devices and modules and take action when conditions are met.<br>
+    For example: <em>"If CPU usage &gt; 85%, send a warning notification."</em></p>
+    <button class="btn btn-primary" style="margin-top:var(--spacing-lg)" onclick="document.getElementById('add-automation-btn').click()">
+        + Create your first rule
+    </button>
+</div>
+{% endif %}
+
+<!-- ======================================================
+     Automation modal
+     ====================================================== -->
+<div id="automation-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="automation-modal-title">New Automation</h3>
+            <button class="btn-close" id="automation-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="automation-id">
+
+            <div class="form-group">
+                <label for="auto-name">Name *</label>
+                <input type="text" id="auto-name" placeholder="e.g. High CPU Alert" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="auto-desc">Description</label>
+                <input type="text" id="auto-desc" placeholder="Optional note about this rule">
+            </div>
+
+            <div class="form-section-divider">
+                <span>IF — Trigger condition</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="auto-trigger-module">Module *</label>
+                    <select id="auto-trigger-module">
+                        {% for mod in module_names %}
+                        <option value="{{ mod }}">{{ mod }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="auto-trigger-key">Data key *</label>
+                    <input type="text" id="auto-trigger-key" placeholder="e.g. cpu_percent">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="auto-trigger-op">Operator *</label>
+                    <select id="auto-trigger-op">
+                        <option value="gt">&gt; greater than</option>
+                        <option value="gte">&ge; greater than or equal</option>
+                        <option value="lt">&lt; less than</option>
+                        <option value="lte">&le; less than or equal</option>
+                        <option value="eq">= equals</option>
+                        <option value="ne">&ne; not equals</option>
+                        <option value="contains">contains (string)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="auto-trigger-value">Threshold *</label>
+                    <input type="text" id="auto-trigger-value" placeholder="e.g. 85">
+                </div>
+            </div>
+
+            <div class="form-section-divider">
+                <span>THEN — Action</span>
+            </div>
+
+            <div class="form-group">
+                <label for="auto-action-type">Action *</label>
+                <select id="auto-action-type" onchange="updateActionFields()">
+                    <option value="notify">Send in-app notification</option>
+                    <option value="webhook">POST to webhook URL</option>
+                </select>
+            </div>
+
+            <div id="action-notify-fields">
+                <div class="form-group">
+                    <label for="auto-notif-title">Notification title</label>
+                    <input type="text" id="auto-notif-title" placeholder="Alert title (leave blank for default)">
+                </div>
+                <div class="form-group">
+                    <label for="auto-notif-message">Notification message</label>
+                    <input type="text" id="auto-notif-message" placeholder="Message (leave blank for default)">
+                </div>
+                <div class="form-group">
+                    <label for="auto-notif-level">Level</label>
+                    <select id="auto-notif-level">
+                        <option value="info">Info</option>
+                        <option value="warning" selected>Warning</option>
+                        <option value="error">Error</option>
+                        <option value="success">Success</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="action-webhook-fields" style="display:none">
+                <div class="form-group">
+                    <label for="auto-webhook-url">Webhook URL</label>
+                    <input type="url" id="auto-webhook-url" placeholder="https://hooks.example.com/...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="auto-cooldown">Cooldown (seconds)</label>
+                <input type="number" id="auto-cooldown" value="300" min="0">
+                <span class="form-hint">Minimum time between repeated triggers (0 = no cooldown)</span>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="automation-save-btn">Save Rule</button>
+            <button class="btn btn-secondary" id="automation-cancel-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+function updateActionFields() {
+    var t = document.getElementById("auto-action-type").value;
+    document.getElementById("action-notify-fields").style.display = t === "notify" ? "" : "none";
+    document.getElementById("action-webhook-fields").style.display = t === "webhook" ? "" : "none";
+}
+
+function openModal(title) {
+    document.getElementById("automation-modal-title").textContent = title;
+    document.getElementById("automation-modal").style.display = "flex";
+    document.getElementById("auto-name").focus();
+}
+
+function closeModal() {
+    document.getElementById("automation-modal").style.display = "none";
+    clearForm();
+}
+
+function clearForm() {
+    ["automation-id", "auto-name", "auto-desc", "auto-trigger-key",
+     "auto-trigger-value", "auto-notif-title", "auto-notif-message",
+     "auto-webhook-url"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    document.getElementById("auto-cooldown").value = "300";
+    document.getElementById("auto-action-type").value = "notify";
+    document.getElementById("auto-notif-level").value = "warning";
+    document.getElementById("auto-trigger-op").value = "gt";
+    updateActionFields();
+}
+
+document.getElementById("add-automation-btn").addEventListener("click", function () {
+    clearForm();
+    openModal("New Automation Rule");
+});
+document.getElementById("automation-modal-close").addEventListener("click", closeModal);
+document.getElementById("automation-cancel-btn").addEventListener("click", closeModal);
+document.getElementById("automation-modal").addEventListener("click", function (e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById("automation-save-btn").addEventListener("click", async function () {
+    var id = document.getElementById("automation-id").value;
+    var name = document.getElementById("auto-name").value.trim();
+    if (!name) { alert("Name is required"); return; }
+
+    var triggerKey = document.getElementById("auto-trigger-key").value.trim();
+    var triggerValue = document.getElementById("auto-trigger-value").value.trim();
+    if (!triggerKey || !triggerValue) { alert("Trigger key and value are required"); return; }
+
+    var actionType = document.getElementById("auto-action-type").value;
+    var payload = {};
+    if (actionType === "notify") {
+        payload = {
+            title: document.getElementById("auto-notif-title").value,
+            message: document.getElementById("auto-notif-message").value,
+            level: document.getElementById("auto-notif-level").value,
+        };
+    } else if (actionType === "webhook") {
+        payload = { url: document.getElementById("auto-webhook-url").value };
+    }
+
+    var body = {
+        name: name,
+        description: document.getElementById("auto-desc").value,
+        trigger_module: document.getElementById("auto-trigger-module").value,
+        trigger_key: triggerKey,
+        trigger_operator: document.getElementById("auto-trigger-op").value,
+        trigger_value: triggerValue,
+        action_type: actionType,
+        action_payload: payload,
+        cooldown_seconds: parseInt(document.getElementById("auto-cooldown").value, 10) || 300,
+    };
+
+    var url = id ? "/api/automations/" + id : "/api/automations";
+    var method = id ? "PUT" : "POST";
+
+    try {
+        var resp = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        if (resp.ok) {
+            location.reload();
+        } else {
+            var err = await resp.json();
+            alert("Error: " + (err.error || "Unknown error"));
+        }
+    } catch (e) {
+        alert("Request failed: " + e.message);
+    }
+});
+
+async function editAutomation(id) {
+    var resp = await fetch("/api/automations");
+    var automations = await resp.json();
+    var auto = automations.find(function (a) { return a.id === id; });
+    if (!auto) return;
+
+    document.getElementById("automation-id").value = auto.id;
+    document.getElementById("auto-name").value = auto.name || "";
+    document.getElementById("auto-desc").value = auto.description || "";
+    document.getElementById("auto-trigger-module").value = auto.trigger_module;
+    document.getElementById("auto-trigger-key").value = auto.trigger_key;
+    document.getElementById("auto-trigger-op").value = auto.trigger_operator;
+    document.getElementById("auto-trigger-value").value = auto.trigger_value;
+    document.getElementById("auto-action-type").value = auto.action_type;
+    document.getElementById("auto-cooldown").value = auto.cooldown_seconds;
+
+    var p = auto.action_payload || {};
+    if (auto.action_type === "notify") {
+        document.getElementById("auto-notif-title").value = p.title || "";
+        document.getElementById("auto-notif-message").value = p.message || "";
+        document.getElementById("auto-notif-level").value = p.level || "warning";
+    } else if (auto.action_type === "webhook") {
+        document.getElementById("auto-webhook-url").value = p.url || "";
+    }
+
+    updateActionFields();
+    openModal("Edit Automation Rule");
+}
+
+async function deleteAutomation(id) {
+    if (!confirm("Delete this automation rule?")) return;
+    var resp = await fetch("/api/automations/" + id, { method: "DELETE" });
+    if (resp.ok) location.reload();
+}
+
+async function toggleAutomation(id, enabled) {
+    await fetch("/api/automations/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: enabled }),
+    });
+}
+</script>
+{% endblock %}

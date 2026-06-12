@@ -1,0 +1,81 @@
+<div class="system-stats-widget">
+    <div class="stat-row">
+        <span class="stat-label">CPU</span>
+        <div class="stat-bar-wrap">
+            <div class="stat-bar">
+                <div class="stat-bar-fill{% if data.cpu_percent > 85 %} danger{% elif data.cpu_percent > 65 %} warning{% endif %}"
+                     style="width: {% if data.cpu_percent > 100 %}100{% else %}{{ data.cpu_percent | round | int }}{% endif %}%"></div>
+            </div>
+        </div>
+        <span class="stat-value" data-stat="cpu_percent">{{ data.cpu_percent }}%</span>
+    </div>
+
+    <div class="stat-row">
+        <span class="stat-label">RAM</span>
+        <div class="stat-bar-wrap">
+            <div class="stat-bar">
+                <div class="stat-bar-fill{% if data.ram_percent > 85 %} danger{% elif data.ram_percent > 65 %} warning{% endif %}"
+                     style="width: {% if data.ram_percent > 100 %}100{% else %}{{ data.ram_percent | round | int }}{% endif %}%"></div>
+            </div>
+        </div>
+        <span class="stat-value" data-stat="ram_percent">{{ data.ram_percent }}%</span>
+    </div>
+
+    <div class="stat-row">
+        <span class="stat-label">Disk</span>
+        <div class="stat-bar-wrap">
+            <div class="stat-bar">
+                <div class="stat-bar-fill{% if data.disk_percent > 85 %} danger{% elif data.disk_percent > 65 %} warning{% endif %}"
+                     style="width: {% if data.disk_percent > 100 %}100{% else %}{{ data.disk_percent | round | int }}{% endif %}%"></div>
+            </div>
+        </div>
+        <span class="stat-value" data-stat="disk_percent">{{ data.disk_percent }}%</span>
+    </div>
+
+    <div class="widget-details">
+        <div class="widget-detail">
+            <span class="widget-detail-label">RAM</span>
+            <span class="widget-detail-value" data-stat="ram_detail">{{ data.ram_used_gb }} / {{ data.ram_total_gb }} GB</span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label">Disk</span>
+            <span class="widget-detail-value" data-stat="disk_detail">{{ data.disk_used_gb }} / {{ data.disk_total_gb }} GB</span>
+        </div>
+        {% if data.cpu_count %}
+        <div class="widget-detail">
+            <span class="widget-detail-label">Cores</span>
+            <span class="widget-detail-value">{{ data.cpu_count }}</span>
+        </div>
+        {% endif %}
+        {% if data.cpu_freq_mhz %}
+        <div class="widget-detail">
+            <span class="widget-detail-label">Freq</span>
+            <span class="widget-detail-value" data-stat="cpu_freq">{{ data.cpu_freq_mhz }} MHz</span>
+        </div>
+        {% endif %}
+        <div class="widget-detail">
+            <span class="widget-detail-label">Net ↓</span>
+            <span class="widget-detail-value" data-stat="net_recv">{{ data.net_bytes_recv_mb }} MB</span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label">Net ↑</span>
+            <span class="widget-detail-value" data-stat="net_sent">{{ data.net_bytes_sent_mb }} MB</span>
+        </div>
+    </div>
+
+    {% if data.temperatures %}
+    <div class="stat-temperatures">
+        {% for sensor, temp in data.temperatures.items() %}
+        <span class="temp-chip{% if temp > 80 %} danger{% elif temp > 65 %} warning{% endif %}">
+            🌡 {{ sensor }}: {{ temp }}°C
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="stat-chart-trigger">
+        <button class="btn-chart-link" onclick="openHistoryChart('system_stats', 'cpu_percent', 'CPU Usage')">
+            📈 View History
+        </button>
+    </div>
+</div>

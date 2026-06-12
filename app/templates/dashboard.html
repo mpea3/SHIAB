@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/dashboard.css">
+{% endblock %}
+
+{% block content %}
+<!-- Quick Status Summary Bar -->
+<div class="status-bar" id="status-bar">
+    <div class="status-bar-item" id="status-modules">
+        <span class="status-bar-icon">⬡</span>
+        <span class="status-bar-label">Modules</span>
+        <span class="status-bar-value" id="status-modules-count">{{ modules | length }}</span>
+    </div>
+    {% for module in modules %}
+    {% if module.name == "weather" and not module.data.error %}
+    <div class="status-bar-item" id="status-weather">
+        <span class="status-bar-icon">{{ module.icon | safe }}</span>
+        <span class="status-bar-label">Outside</span>
+        <span class="status-bar-value">{{ module.data.temperature | round | int }}&deg;</span>
+    </div>
+    {% endif %}
+    {% if module.name == "wifi" and module.data.devices %}
+    <div class="status-bar-item" id="status-devices">
+        <span class="status-bar-icon">{{ module.icon | safe }}</span>
+        <span class="status-bar-label">Online</span>
+        <span class="status-bar-value">{{ module.data.devices | selectattr("online") | list | length }}/{{ module.data.devices | length }}</span>
+    </div>
+    {% endif %}
+    {% if module.name == "system_stats" and not module.data.error %}
+    <div class="status-bar-item" id="status-cpu">
+        <span class="status-bar-icon">{{ module.icon | safe }}</span>
+        <span class="status-bar-label">CPU</span>
+        <span class="status-bar-value {% if module.data.cpu_percent > 85 %}text-danger{% elif module.data.cpu_percent > 65 %}text-warning{% endif %}">{{ module.data.cpu_percent }}%</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+    <div class="status-bar-item status-bar-time" id="status-time">
+        <span class="status-bar-icon">⏱</span>
+        <span class="status-bar-value" id="status-bar-clock"></span>
+    </div>
+</div>
+
+<!-- Dashboard Header with Edit Toggle -->
+<div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <div class="dashboard-header-actions">
+        <button id="refresh-all-btn" class="btn btn-secondary" title="Refresh all widgets">
+            <span class="refresh-icon">↻</span> Refresh
+        </button>
+        <button id="edit-mode-btn" class="btn btn-secondary edit-mode-toggle">
+            <span class="edit-icon">✎</span>
+            Edit Layout
+        </button>
+    </div>
+</div>
+
+{% if modules %}
+<div class="dashboard-grid" id="dashboard-grid">
+    {% for module in modules %}
+    <div class="widget-card widget-{{ module.widget_size }}"
+         data-module="{{ module.name }}"
+         data-refresh-interval="{{ module.refresh_interval }}"
+         data-widget-size="{{ module.widget_size }}"
+         {% if module.data.timezone %}data-timezone="{{ module.data.timezone }}"{% endif %}
+         {% if module.data.format_24h is defined %}data-format-24h="{{ module.data.format_24h | lower }}"{% endif %}>
+
+        <!-- Edit Controls (hidden by default) -->
+        <div class="widget-edit-controls">
+            <button class="widget-btn widget-size-small{{ ' active' if module.widget_size == 'small' else '' }}" title="Small" data-size="small">S</button>
+            <button class="widget-btn widget-size-medium{{ ' active' if module.widget_size == 'medium' else '' }}" title="Medium" data-size="medium">M</button>
+            <button class="widget-btn widget-size-large{{ ' active' if module.widget_size == 'large' else '' }}" title="Large" data-size="large">L</button>
+            <button class="widget-btn widget-remove" title="Remove">×</button>
+        </div>
+
+        <div class="widget-header">
+            <span class="widget-icon">{{ module.icon | safe }}</span>
+            <h2>{{ module.display_name }}</h2>
+            <div class="widget-header-actions">
+                <button class="widget-action-btn widget-refresh-btn" title="Refresh" data-module="{{ module.name }}">↻</button>
+                <button class="widget-action-btn widget-expand-btn" title="Expand" data-module="{{ module.name }}">⤢</button>
+            </div>
+            <span class="widget-drag-handle" title="Drag to reorder">⋮⋮</span>
+        </div>
+        <div class="widget-body">
+            {% if module.data.error %}
+            <div class="widget-error">
+                {{ module.data.error_message | default("An error occurred") }}
+            </div>
+            {% else %}
+            {% with data=module.data %}
+            {% include module.widget_template %}
+            {% endwith %}
+            {% endif %}
+        </div>
+        <div class="widget-footer">
+            <span class="widget-last-updated" data-module="{{ module.name }}">Just now</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Edit Mode Sidebar -->
+<div class="edit-sidebar" id="edit-sidebar">
+    <div class="edit-sidebar-header">
+        <h3>Available Modules</h3>
+        <button class="btn-close" id="sidebar-close">×</button>
+    </div>
+    <div class="edit-sidebar-content">
+        <div id="available-modules-list" class="available-modules-list">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+    <div class="edit-sidebar-footer">
+        <button class="btn btn-primary" id="save-layout-btn">Save Layout</button>
+        <button class="btn btn-secondary" id="reset-layout-btn">Reset</button>
+    </div>
+</div>
+
+<!-- Edit Overlay (for sidebar backdrop) -->
+<div class="edit-overlay" id="edit-overlay"></div>
+
+{% else %}
+<div class="dashboard-empty">
+    <div class="empty-icon">⬡</div>
+    <h2>No modules enabled</h2>
+    <p>Enable modules in <a href="/settings">Settings</a> to populate your dashboard.</p>
+    <a href="/settings" class="btn btn-primary" style="margin-top: var(--spacing-lg)">Go to Settings</a>
+</div>
+{% endif %}
+
+<!-- Widget Detail Popout Modal -->
+<div class="popout-overlay" id="popout-overlay">
+    <div class="popout-modal" id="popout-modal">
+        <div class="popout-header">
+            <div class="popout-title">
+                <span class="popout-icon" id="popout-icon"></span>
+                <h2 id="popout-name"></h2>
+            </div>
+            <div class="popout-header-actions">
+                <button class="popout-action-btn" id="popout-refresh-btn" title="Refresh">↻</button>
+                <button class="popout-close-btn" id="popout-close-btn" title="Close">×</button>
+            </div>
+        </div>
+        <div class="popout-body" id="popout-body">
+            <div class="popout-content" id="popout-content">
+                <!-- Widget content rendered here -->
+            </div>
+            <div class="popout-sidebar-info" id="popout-sidebar-info">
+                <h3>Module Info</h3>
+                <div class="popout-info-list" id="popout-info-list">
+                    <!-- Module metadata -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

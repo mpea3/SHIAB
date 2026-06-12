@@ -1,0 +1,9 @@
+<div class="timedate-widget"
+     data-timezone="{{ data.timezone }}"
+     data-format-24h="{{ data.format_24h | lower }}">
+    <div class="widget-value timedate-time">{{ data.time }}</div>
+    <div class="widget-label timedate-date">{{ data.date }}</div>
+    <div class="widget-detail-label" style="margin-top: var(--spacing-md);">
+        {{ data.timezone }}
+    </div>
+</div>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/themes/{{ theme }}.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <!-- Chart.js for history graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <a href="/" class="nav-brand">{{ app_name }}</a>
+
+            <!-- Hamburger toggle (mobile only) -->
+            <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle navigation" aria-expanded="false">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+
+            <div class="nav-links" id="nav-links">
+                <a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>Dashboard</a>
+                <a href="/automations" {% if request.url.path == "/automations" %}class="active"{% endif %}>Automations</a>
+                <a href="/settings" {% if request.url.path == "/settings" %}class="active"{% endif %}>Settings</a>
+                <a href="/notifications" class="nav-notif{% if request.url.path == '/notifications' %} active{% endif %}" id="notif-bell" title="Notifications">
+                    🔔
+                    <span class="notif-badge" id="notif-count" style="display:none">0</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>{{ app_name }} v{{ version }}</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+    (function () {
+        "use strict";
+
+        // ---- Mobile nav hamburger ----
+        var hamburger = document.getElementById("nav-hamburger");
+        var navLinks = document.getElementById("nav-links");
+
+        if (hamburger && navLinks) {
+            hamburger.addEventListener("click", function () {
+                var isOpen = navLinks.classList.toggle("nav-open");
+                hamburger.classList.toggle("is-active", isOpen);
+                hamburger.setAttribute("aria-expanded", isOpen);
+            });
+
+            // Close nav when a link is clicked (mobile)
+            navLinks.querySelectorAll("a").forEach(function (link) {
+                link.addEventListener("click", function () {
+                    navLinks.classList.remove("nav-open");
+                    hamburger.classList.remove("is-active");
+                    hamburger.setAttribute("aria-expanded", "false");
+                });
+            });
+        }
+
+        // ---- Notification badge polling ----
+        function updateNotifBadge(count) {
+            var badge = document.getElementById("notif-count");
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count > 99 ? "99+" : count;
+                badge.style.display = "";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+
+        function pollUnreadCount() {
+            fetch("/api/notifications/unread-count")
+                .then(function (r) { return r.json(); })
+                .then(function (d) { updateNotifBadge(d.count); })
+                .catch(function () {});
+        }
+
+        pollUnreadCount();
+        setInterval(pollUnreadCount, 30000);
+
+        // ---- WebSocket for real-time badge updates ----
+        function connectWS() {
+            var proto = location.protocol === "https:" ? "wss" : "ws";
+            var ws = new WebSocket(proto + "://" + location.host + "/ws");
+            ws.onmessage = function (e) {
+                try {
+                    var msg = JSON.parse(e.data);
+                    if (msg.type === "status" && msg.unread_notifications !== undefined) {
+                        updateNotifBadge(msg.unread_notifications);
+                    }
+                } catch (_) {}
+            };
+            ws.onclose = function () { setTimeout(connectWS, 5000); };
+            ws.onerror = function () { ws.close(); };
+        }
+
+        try { connectWS(); } catch (_) {}
+    })();
+    </script>
+</body>
+</html>

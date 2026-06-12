@@ -1,0 +1,48 @@
+<div class="zigbee-widget">
+    {% if data.message %}
+    <div style="font-size: var(--font-size-xs); color: var(--color-warning); margin-bottom: var(--spacing-sm);">
+        {{ data.message }}
+    </div>
+    {% endif %}
+
+    <ul class="widget-list zigbee-list">
+        {% for device in data.devices %}
+        <li class="widget-list-item">
+            <div>
+                <span class="status-dot {{ 'status-online' if device.online else 'status-offline' }}"></span>
+                <span class="widget-list-item-name">{{ device.name }}</span>
+            </div>
+            <span class="widget-list-item-meta">
+                {% if device.battery is not none %}
+                    {{ device.battery }}% batt
+                {% else %}
+                    {{ device.type }}
+                {% endif %}
+            </span>
+        </li>
+        {% endfor %}
+        {% if not data.devices %}
+        <li class="widget-list-item">
+            <span class="widget-list-item-name" style="color: var(--color-text-muted);">
+                No devices paired
+            </span>
+        </li>
+        {% endif %}
+    </ul>
+
+    {% if data.coordinator %}
+    <div class="widget-details">
+        <div class="widget-detail">
+            <span class="widget-detail-label">Coordinator</span>
+            <span class="widget-detail-value">
+                <span class="status-dot {{ 'status-online' if data.coordinator.connected else 'status-offline' }}"></span>
+                {{ "Connected" if data.coordinator.connected else "Disconnected" }}
+            </span>
+        </div>
+        <div class="widget-detail">
+            <span class="widget-detail-label">Channel</span>
+            <span class="widget-detail-value">{{ data.coordinator.channel }}</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
